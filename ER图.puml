@@ -1,0 +1,27 @@
+@startuml
+'https://plantuml.com/entity-diagram
+'https://plantuml.com/zh/ie-diagram
+
+entity MemTable {
+
+    refs_: int
+    arena: Arena
+    table_: SkipList<char*, KeyComparator>
+
+}
+
+entity Slice {
+
+    data_: char*
+    size_: size_t
+
+}
+
+entity DBImpl {
+
+    a: test
+    --
+    b: test
+}
+
+@enduml
