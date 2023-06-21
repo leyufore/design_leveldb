@@ -1,27 +1,329 @@
 @startuml
-'https://plantuml.com/entity-diagram
+'https://plantuml.com/class-diagram
 'https://plantuml.com/zh/ie-diagram
 
-entity MemTable {
+interface DB {
+    Put()
+    Delete()
+    Write()
+    Get()
+    NewIterator()
+    GetSnapshot()
+    ReleaseSnapshot()
+    GetProperty()
+    GetApproximateSizes()
+    CompactRange()
+}
 
+class DBImpl {
+    env: Env*
+    internal_comparator_: InternalComparator
+    internal_filter_policy_: InternalFilterPolicy
+    options_: Options
+    owns_info_log: bool
+    owns_cache: bool
+    dbname_: string
+    table_cache_: TableCache*
+    db_lock_: FileLock*
+    mutex_: Mutex
+    shutting_down_: atomic<bool>
+    background_work_finished_signal_: CondVar
+    mem_: MemTable*
+    imm_: MemTable*
+    has_imm_: atomic
+    logfile_: WritableFile*
+    logfile_number_: uint64_t
+    log_: Writer*
+    seed_: uint32_t
+    writers_: deque<Writer>
+    tmp_batch_: WriteBatch*
+    snapshots_: SnapshotList
+    pending_outputs_: set<uint64_t>
+    background_compaction_scheduled_: bool
+    manual_compaction_: ManualCompaction
+    versions_: VersionSet*
+    bg_error_: Status
+    stats_: CompactionStats[]
+    __
+    + RecordReadSample()
+    - NewInternalInterator()
+    - NewDb()
+    - Recover()
+    - RemoveObsoleteFiles()
+    - CompactMemTable()
+    - RecoverLogFile()
+    - WriteLevel0Table()
+    - MakeRoomForWrite()
+    - BuildBatchGroup()
+    - RecordBackgroundError()
+    - MaybeScheduleCompaction()
+    {static} - BGWork()
+    - BackgroundCall()
+    - BackgroundCompaction()
+    - CleanupCompaction()
+    - DoCompactionWork()
+    - OpenCompactionOutputFile()
+    - FinishCompactionOutputFile()
+    - InstallCompactionResults()
+}
+
+interface Env {
+    说明：抽象环境xxx
+    __
+    {abstract} NewSequentialFile()
+    {abstract} NewRandomAccessFile()
+    {abstract} NewWritableFile()
+    {abstract} NewAppendableFile()
+    {abstract} FileExits()
+    {abstract} GetChildren()
+    {abstract} RemoveFile()
+    {abstract} CreateDir()
+    {abstract} RemoveDir()
+    {abstract} GetFileSize()
+    {abstract} LockFile()
+    {abstract} UnlockFile()
+    {abstract} Schedule()
+    {abstract} StartThread()
+    {abstract} NewLogger()
+    {abstract} NowMicros()
+    {abstract} SleepForMicroseconds()
+}
+
+interface SequentialFile {
+    Read(size_t n, Slice* result, char* scratch)
+    Skip(uint64_t n)
+}
+
+interface RandomAccessFile {
+    Read((uint64_t offset, size_t n, Slice* result, char* scratch)
+}
+
+interface WritableFile {
+    Append(Slice& data)
+    Close()
+    Flush()
+    Sync()
+}
+
+interface Logger {
+    Logv(char* format, va_list ap)
+}
+
+interface FileLock {
+}
+
+class EnvWrapper {
+    target: Env
+}
+
+interface Cache {
+    Insert()
+    Lookup()
+    Release()
+    Value()
+    Erase()
+    NewId()
+    Prune()
+    TotalCharge()
+}
+
+class LRUHandle {
+    value: void*
+    deleter: void *func
+    next_hash: LRUHandle
+    next: LRUHandle
+    prev: LRUHandle
+    charge: size_t
+    key_length: size_t
+    in_cache: bool
+    refs: uint32_t
+    hash: uint32_t
+    key_data: char[1]
+}
+
+class HandleTable {
+    length_: uint32_t
+    elems_: uint32_t
+    list_: LRUHandle**
+}
+
+class LRUCache {
+    capacity_: size_t
+    mutex_: Mutex
+    usage_: size_t
+    lru_: LRUHandle
+    in_use_: LRUHandle
+    table_: HandleTable
+}
+
+class ShardedLRUCache {
+    shard_: LRUCache[]
+    id_mutex_: Mutex
+    last_id_: uint64_t
+}
+
+class TableCache {
+    env: Env*
+    dbname_: string
+    options_: Options&
+    cache_: Cache*
+    __
+    + NewIterator()
+    + Get()
+    + Evict()
+    - FindTable()
+}
+
+class MemTable {
+    comparator_: KeyComparator
     refs_: int
     arena: Arena
     table_: SkipList<char*, KeyComparator>
-
+    __
+    + Ref()
+    + UnRef()
+    + ApproximateMemoryUsage()
+    + NewIterator()
+    + Add()
+    + Get()
 }
 
-entity Slice {
-
+class Slice {
     data_: char*
     size_: size_t
-
 }
 
-entity DBImpl {
-
-    a: test
-    --
-    b: test
+class WriteBatch {
+    rep_: string
+    __
+    + Put()
+    + Delete()
+    + Clear()
+    + ApproximateSize()
+    + Append()
+    + Iterate()
 }
+
+class SnapshotList {
+    head_: SnapshotImpl
+    __
+    + empty()
+    + oldest()
+    + newest()
+    + New()
+    + Delete()
+}
+
+class SnapshotImpl {
+    prev_: SnapshotImpl*
+    next_: SnapshotImpl*
+    sequence_number_: SequenceNumber
+}
+
+class VersionSet {
+    env_: Env*
+    dbname_: string
+    table_cache_: TableCache*
+    icmp_: InternalKeyComparator
+    next_file_number_: uint64_t
+    manifest_file_number_: uint64_t
+    last_sequence_: uint64_t
+    log_number_: uint64_t
+    prev_log_number_: uint64_t
+    descriptor_file_: WritableFile*
+    descriptor_log_: Writer
+    dummy_versions_: Version
+    current_: Version*
+    compact_pointer_: string[]
+    __
+    + LogAndApply()
+    + Recover()
+    + current()
+    + ManifestFileNumber()
+    + NewFileNumber()
+    + ReuseFileNumber()
+    + NumLevelFiles()
+    + NumLevelBytes()
+    + LastSequence()
+    + SetLastSequence()
+    + MarkFileNumberUsed()
+    + LogNumber()
+    + PrevLogNumber()
+    + PickCompaction()
+    + CompactRange()
+    + MaxNextLevelOverlappingBytes()
+    + MakeInputIterator()
+    + NeedCompaction()
+    + AddLiveFiles()
+    + ApproximateOffsetOf()
+    + LevelSummary()
+    - ReuseManifest()
+    - Finalize()
+    - GetRange()
+    - GetRange2()
+    - SetupOtherInputs()
+    - WriteSnapshot()
+    - AppendVersion()
+}
+
+class Version {
+    vset_: VersionSet*
+    next_: Version*
+    prev_: Version*
+    refs_: int
+    files_: vector<FileMetaData*>[]
+    file_to_compact_: FileMetaData*
+    file_to_compact_level_: int
+    compaction_score_: double
+    compaction_level_: int
+    __
+    + AddIterators()
+    + Get()
+    + UpdateStats()
+    + RecordReadSample()
+    + Ref()
+    + Unref()
+    + GetOverlappingInputs()
+    + OverlapInLevel()
+    + PickLevelForMemTableOutput()
+    - NewConcatenatingIterator()
+    - ForEachOverlapping()
+}
+
+class FileMetaData {
+    refs: int
+    allowed_seeks: int
+    number: uint64_t
+    file_size: uint64_t
+    smallest: InternalKey
+    largest: InternalKey
+}
+
+Env <|-- EnvWrapper
+
+DB <|-- DBImpl
+
+Cache <|-- ShardedLRUCache
+
+DBImpl -- TableCache
+DBImpl -- FileLock
+DBImpl -- MemTable
+DBImpl -- WritableFile
+DBImpl -- WriteBatch
+DBImpl -- SnapshotList
+DBImpl -- ManualCompaction
+DBImpl -- VersionSet
+
+LRUCache -- LRUHandle
+LRUCache -- HandleTable
+ShardedLRUCache -- LRUCache
+
+TableCache -- Cache
+
+SnapshotList -- SnapshotImpl
+
+VersionSet -- TableCache
+VersionSet -- Version
+Version -- FileMetaData
 
 @enduml
