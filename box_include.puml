@@ -1,11 +1,15 @@
 @startuml
 'https://plantuml.com/sequence-diagram
 
-autonumber
+box
+!include file_posix_流程.puml!0
+end box
 
-DB -> DB: 初始化 DBImpl
-DB -> DB: mutex_.Lock()
-DB -> DBImpl: impl->Recover()
+box
+!include PosixSequentialFile.puml!0
+end box
+
+autonumber
 
 Alice -> Bob: Authentication Request
 Bob --> Alice: Authentication Response

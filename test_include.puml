@@ -1,0 +1,33 @@
+'@startuml
+
+'A -> image: <img:http://plantuml.com/logo3.png>
+'A -> image: <img:class.puml>
+legend
+{{
+salt
+{
+H -> I: test
+}
+}}
+end legend
+
+|||
+
+legend
+{{
+salt
+{
+Alice -> Bob: Authentication Request
+Bob --> Alice: Authentication Response
+
+Alice -> Bob: Another authentication Request
+Alice <-- Bob: another authentication Response
+}
+}}
+end legend
+
+box
+C -> D: test
+end box
+
+@enduml

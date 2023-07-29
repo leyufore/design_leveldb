@@ -1,0 +1,56 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+participant PosixWritableFile <<WritableFile>>
+
+==Append：追加数据==
+autonumber
+[o-> PosixWritableFile: Append(data)
+PosixWritableFile -> PosixWritableFile: memcpy: 尽可能把数据存入内存缓存buf_
+alt 内存缓存buf_大小不足
+    PosixWritableFile -> PosixWritableFile: FlushBuffer: 触发把内存缓存buf_写入文件中
+    alt 需写入数据大小 < 内存缓存buf_大小
+        PosixWritableFile -> PosixWritableFile: memcpy: 数据存入内存
+    else 需写入数据大小 >= 内存缓存buf_大小
+        PosixWritableFile -> PosixWritableFile: writeUnbuffered: 直接写入文件
+    end
+end
+[<- PosixWritableFile: return
+
+==Close==
+autonumber
+[o-> PosixWritableFile: Close
+PosixWritableFile -> PosixWritableFile: FlushBuffer: 把内存缓存buf_写入文件中
+PosixWritableFile -> PosixWritableFile: close(fd_): 关闭文件
+[<- PosixWritableFile: return
+
+==Flush: 把缓存写入文件==
+autonumber
+[o-> PosixWritableFile: Flush
+PosixWritableFile -> PosixWritableFile: FlushBuffer: 把内存缓存buf_写入文件中
+[<- PosixWritableFile: return
+
+==Sync: 数据刷盘==
+autonumber
+[o-> PosixWritableFile: Sync
+PosixWritableFile -> PosixWritableFile: SyncDirIfManifest: 若是Manifest文件，刷盘其目录
+PosixWritableFile -> PosixWritableFile: FlushBuffer: 把内存缓存buf_写入文件中
+PosixWritableFile -> PosixWritableFile: SyncFd(fd_,filename): 文件刷盘
+[<- PosixWritableFile: return
+
+==private SyncFd: 文件刷盘==
+[o-> PosixWritableFile: SyncFd
+note right
+不同系统（linux/mac等）对文件同步刷盘的支持不同，
+下述处理是为了兼容不同系统
+end note
+alt 系统支持 FULLFSYNC
+PosixWritableFile -> PosixWritableFile: fcntl(fd, F_FULLSYNC): 同步刷盘
+else 系统支持 FDATASYNC
+PosixWritableFile -> PosixWritableFile: fdatasync(fd): 同步刷盘
+else 上述均不支持
+PosixWritableFile -> PosixWritableFile: fsync(fd): 同步刷盘
+end
+[<- PosixWritableFile: return
+
+@enduml

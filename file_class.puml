@@ -1,0 +1,110 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+package env {
+
+    interface Env {
+    
+    }
+    
+    interface SequentialFile {
+        Read(n, result, scratch)
+        Skip(n)
+    }
+    
+    interface RandonAccessFile {
+        Read(offset, n, result, scratch)
+    }
+    
+    interface WritableFile {
+        Append(Slice& data)
+        Close()
+        Flush()
+        Sync()
+    }
+    
+    interface FileLock {
+    }
+
+}
+
+package env_posix {
+
+    class PosixEnv {
+        background_work_mutex_: Mutex
+        background_work_cv_: CondVar
+        started_background_thread_: bool
+        background_work_queue_: queue<BackgroundWorkIter>
+        locks_: PosixLockTable
+        mmap_limiter_: Limiter
+        fd_limiter_: Limiter
+    }
+    
+    class PosixSequentialFile {
+        _fd: int
+        filename: string
+    }
+    
+    class PosixRandomAccessFile {
+        has_permanent_fd_: bool
+        fd_limiter_: Limiter*
+        filename_: string
+    }
+    
+    class PosixMmapReadableFile {
+        mmap_base_: char*
+        length_: size_t
+        mmap_limiter_: Limiter*
+        filename_: string
+    }
+    
+    class PosixWritableFile {
+        buf_: char[]
+        pos_: size_t
+        fd_: int
+        is_manifest_: bool
+        filename_: string
+        dirname_: string
+    }
+    
+    class PosixFileLock {
+        fd_: int
+        filename_: string
+    }
+    
+    class PosixLockTable {
+        mu_: Mutex
+        locked_files_: set<string>
+    }
+    
+    class Limiter {
+        作用: 限制使用来避免资源枯竭
+        如限制只读文件描述符和mmap文件使用，
+        避免用完文件描述符或虚拟内存
+    }
+
+}
+
+Env <|-- PosixEnv
+SequentialFile <|-- PosixSequentialFile
+RandonAccessFile <|-- PosixRandomAccessFile
+RandonAccessFile <|-- PosixMmapReadableFile
+WritableFile <|-- PosixWritableFile
+FileLock <|-- PosixFileLock
+
+Env ..> SequentialFile: use
+Env ..> RandonAccessFile: use
+Env ..> WritableFile: use
+Env ..> FileLock: use
+
+PosixEnv ..> PosixSequentialFile: use
+PosixEnv ..> PosixRandomAccessFile: use
+PosixEnv ..> PosixMmapReadableFile: use
+PosixEnv ..> PosixWritableFile: use
+PosixEnv ..> PosixFileLock: use
+PosixEnv ..> PosixLockTable: use
+
+'辅助布局，无关联含义
+PosixMmapReadableFile -[hidden] PosixRandomAccessFile
+
+@enduml

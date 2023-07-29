@@ -1,0 +1,51 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+==NewSequentialFile==
+autonumber
+[o-> PosixEnv: NewSequentialFile
+PosixEnv -> PosixEnv:open(filename, O_RDONLY|O_CLOEXEC)：只读模式打开文件
+PosixEnv -> PosixEnv: 新建 PosixSequentialFile(filename, fd)
+[<- PosixEnv: return SequentialFile
+
+==NewRandomAccessFile==
+autonumber
+[o-> PosixEnv: NewRandomAccessFile
+PosixEnv -> PosixEnv: open(filename, O_RDONLY|O_CLOEXEC)：只读模式打开文件
+alt !mmap_limiter_.Acquire()： 没mmap资源
+    PosixEnv -> PosixEnv: 新建 PosixRandomAccessFile
+    [<- PosixEnv: return RandomAccessFile
+else 有mmap资源
+    PosixEnv -> PosixEnv: 获取文件大小
+    PosixEnv -> PosixEnv: mmap_base=mmap(nullptr,file_size,PROT_READ,MAP_SHARED,fd,0)：内存映射文件
+    PosixEnv -> PosixEnv: 新建 PosixMmapReadableFile(filename,mmap_base,file_size,mmap_limiter)
+    PosixEnv -> PosixEnv: close(fd)：关闭文件
+    [<- PosixEnv: return RandomAccessFile
+end
+note right
+    有mmap资源，
+    优先通过mmap方式读取文件，
+    没有mmap资源，
+    通过普通方式读取文件
+end note
+
+==NewWritableFile==
+autonumber
+[o-> PosixEnv: NewWritableFile
+PosixEnv -> PosixEnv:open(filename, O_TRUNC|O_WRONLY|O_CREAT|O_CLOEXEC)："清空已有内容|读写|新建"模式打开文件
+PosixEnv -> PosixEnv: 新建 PosixWritableFile(filename, fd)
+[<- PosixEnv: return WritableFile
+
+==NewAppendableFile==
+autonumber
+[o-> PosixEnv: NewAppendableFile
+PosixEnv -> PosixEnv:open(filename, O_APPEND|O_WRONLY|O_CREAT|CLOEXEC)："追加|读写|新建"模式打开文件
+PosixEnv -> PosixEnv: 新建 PosixWritableFile(filename, fd)
+[<- PosixEnv: return WritableFile
+
+==LockFile==
+'todo
+==UnlockFile==
+'todo
+
+@enduml

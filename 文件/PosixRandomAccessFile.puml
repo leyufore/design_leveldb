@@ -1,0 +1,22 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+participant PosixRandomAccessFile <<RandomAccessFile>>
+
+note right of PosixRandomAccessFile
+    初始化时，若是持久化fd，传入fd，若不是则仅传入filename，
+    每次读取时临时打开&关闭文件
+end note
+
+autonumber
+[o-> PosixRandomAccessFile: Read
+alt !had_permanent_fd 不是持久化fd，文件每次读取时打开
+PosixRandomAccessFile -> PosixRandomAccessFile: open(filename,O_RDONLY|CLOEXEC)
+end
+PosixRandomAccessFile -> PosixRandomAccessFile: pread(fd,scratch,n,offset): 从特定位置读取内容
+alt !had_permanent_fd 不是持久化fd，关闭刚打开的临时文件
+PosixRandomAccessFile -> PosixRandomAccessFile: close(fd)
+end
+[o<- PosixRandomAccessFile: return
+
+@enduml

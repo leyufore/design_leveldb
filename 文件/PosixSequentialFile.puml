@@ -1,0 +1,18 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+participant PosixSequentialFile <<SequentialFile>>
+
+==Read==
+autonumber
+[o-> PosixSequentialFile: Read
+PosixSequentialFile -> PosixSequentialFile: read(fd_, scratch, n) 读取文件n字节
+[o<- PosixSequentialFile: return
+
+==Skip==
+autonumber
+[o-> PosixSequentialFile: Skip
+PosixSequentialFile -> PosixSequentialFile: lseek(fd_, n, SEEK_CUR)
+[o<- PosixSequentialFile: return
+
+@enduml

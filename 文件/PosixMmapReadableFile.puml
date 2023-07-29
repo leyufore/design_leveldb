@@ -1,0 +1,11 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+participant PosixMmapReadableFile <<RandomAccessFile>>
+
+autonumber
+[o-> PosixMmapReadableFile: Read
+PosixMmapReadableFile -> PosixMmapReadableFile: Slice(mmap_base_+offset,n): 通过mmap内存映射指针读取内容
+[o<- PosixMmapReadableFile: return Slice
+
+@enduml

@@ -1,0 +1,46 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+rectangle PosixEnv_file [
+    {{
+        !include PosixEnv_file相关.puml!0
+    }}
+]
+
+rectangle PosixSequentialFile [
+    {{
+        !include PosixSequentialFile.puml!0
+    }}
+]
+
+rectangle PosixRandomAccessFile [
+    {{
+        !include PosixRandomAccessFile.puml!0
+    }}
+]
+
+rectangle PosixMmapReadableFile [
+    {{
+        !include PosixMmapReadableFile.puml!0
+    }}
+]
+
+rectangle PosixWritableFile [
+    {{
+        !include PosixWritableFile.puml!0
+    }}
+]
+
+rectangle PosixWritableFile_原理 [
+    {{
+        !include PosixWritableFile_原理.puml!0
+    }}
+]
+
+PosixEnv_file -right[hidden] PosixSequentialFile
+PosixSequentialFile -right[hidden] PosixRandomAccessFile
+PosixRandomAccessFile -right[hidden] PosixMmapReadableFile
+PosixMmapReadableFile -right[hidden] PosixWritableFile
+PosixWritableFile -right[hidden] PosixWritableFile_原理
+
+@enduml

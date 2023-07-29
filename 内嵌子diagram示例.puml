@@ -1,0 +1,18 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+class A {
+    fas
+    ==
+    {{
+        queue b
+    }}
+}
+
+rectangle posix_env_file [
+    {{
+        !include posix_env_file_sequence.puml!0
+    }}
+]
+
+@enduml

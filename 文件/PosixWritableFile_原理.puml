@@ -1,0 +1,17 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+rectangle PosixWritableFile {
+
+    rectangle 内存缓存buffer as memory_buffer
+    rectangle "文件 (page cache)" as 文件
+    database 磁盘
+}
+
+数据 --> memory_buffer: 优先写入缓存
+memory_buffer --> 文件: 缓存空间不足or刷盘前，\n清缓存写文件
+数据 --> 文件: 缓存空间不足，\n直接写文件
+文件 --> 磁盘: 主动fsync刷盘
+文件 --> 磁盘: 操作系统周期性触发刷盘
+
+@enduml

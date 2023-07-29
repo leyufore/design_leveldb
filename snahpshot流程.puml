@@ -1,0 +1,12 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+==GetSnapshot==
+autonumber
+[o-> DB: GetSnapshot
+
+==ReleaseSnapshot==
+autonumber
+[o-> DB: ReleaseSnapshot
+
+@enduml
